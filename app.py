@@ -4,54 +4,72 @@ from maskDetection.utils.main_utils import decodeImage, encodeImageIntoBase64
 from flask import Flask, request, jsonify, render_template,Response
 from flask_cors import CORS, cross_origin
 from maskDetection.constant.application import APP_HOST, APP_PORT
-import streamlit as st
+
+
+app = Flask(__name__)
+CORS(app)
 
 class ClientApp:
     def __init__(self):
         self.filename = "inputImage.jpg"
 
-clApp = ClientApp()
 
-@st.cache
-def train_model():
+
+@app.route("/train")
+def trainRoute():
     obj = TrainPipeline()
     obj.run_pipeline()
+    return "Training Successfull!!" 
 
-def main():
-    st.title("Object Detection Web App")
 
-    menu = ["Home", "Train", "Predict", "Live"]
-    choice = st.sidebar.selectbox("Menu", menu)
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-    if choice == "Home":
-        st.subheader("Home")
-        st.write("Welcome to the Object Detection Web App!")
 
-    elif choice == "Train":
-        st.subheader("Train")
-        train_model()
-        st.write("Training Successful!")
 
-    elif choice == "Predict":
-        st.subheader("Predict")
-        image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
-        if image is not None:
-            decodeImage(image, clApp.filename)
+@app.route("/predict", methods=['POST','GET'])
+@cross_origin()
+def predictRoute():
+    try:
+        image = request.json['image']
+        decodeImage(image, clApp.filename)
 
-            os.system("cd yolov5/ && python detect.py --weights best.pt --img 416 --conf 0.5 --source ../data/inputImage.jpg")
+        os.system("cd yolov5/ && python detect.py --weights best.pt --img 416 --conf 0.5 --source ../data/inputImage.jpg")
 
-            opencodedbase64 = encodeImageIntoBase64("yolov5/runs/detect/exp/inputImage.jpg")
-            result = {"image": opencodedbase64.decode('utf-8')}
-            os.system("rm -rf yolov5/runs")
-            st.image(image, caption="Input Image")
-            st.image(result["image"], caption="Output Image")
+        opencodedbase64 = encodeImageIntoBase64("yolov5/runs/detect/exp/inputImage.jpg")
+        result = {"image": opencodedbase64.decode('utf-8')}
+        os.system("rm -rf yolov5/runs")
 
-    elif choice == "Live":
-        st.subheader("Live")
+    except ValueError as val:
+        print(val)
+        return Response("Value not found inside  json data")
+    except KeyError:
+        return Response("Key value error incorrect key passed")
+    except Exception as e:
+        print(e)
+        result = "Invalid input"
+
+    return jsonify(result)
+
+
+
+@app.route("/live", methods=['GET'])
+@cross_origin()
+def predictLive():
+    try:
         os.system("cd yolov5/ && python detect.py --weights best.pt --img 416 --conf 0.5 --source 0")
         os.system("rm -rf yolov5/runs")
-        st.write("Camera starting!!")
+        return "Camera starting!!" 
+
+    except ValueError as val:
+        print(val)
+        return Response("Value not found inside  json data")
+    
+
+
 
 if __name__ == "__main__":
-    main()
+    clApp = ClientApp()
+    app.run(host=APP_HOST, port=APP_PORT)
 
