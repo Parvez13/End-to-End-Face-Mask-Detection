@@ -26,3 +26,4 @@ We had used YOLOv5 model and trained on 300 epochs with 82.9% of mAP50 score
 ![val_batch0_pred](https://github.com/Parvez13/Mask_Detection/assets/66157611/c10f7f3e-b595-4bcb-a2c0-108155a050fa)
 
 
+* AWS Cloud Deployment App Link on EC2 with Github Actions: https://54.241.138.215/8080
